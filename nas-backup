@@ -1,0 +1,80 @@
+#!/bin/bash
+# set -x
+
+setvars() {
+  n=0
+  newpath="/mnt/"
+  volumes=
+  volarg=
+  config=$(mktemp /tmp/nas-backup.XXXXXX)
+}
+
+dowork() {
+  docker run \
+  -d \
+  --name nas-backup \
+  --cap-add SYS_ADMIN \
+  --device /dev/fuse \
+  --security-opt apparmor:unconfined \
+  ${volumes} \
+  ja2ui0/mergerfs:latest
+}
+
+inform() {
+  echo
+  echo "This script will create your nas-backup container."
+  echo
+}
+
+getpaths() {
+  while [[ -n "${newpath}" ]]; do
+    echo
+    read -p "Mount path for volume to be merged (blank for none): " -i "${newpath}" -e newpath
+    checkpaths
+  done
+}
+
+checkpaths() {
+  if [[ -z "${newpath}" ]]; then
+    :
+  elif grep "${newpath}:" <<< "${volumes}" > /dev/null; then
+    echo "${newpath} has already been specified."
+  elif grep -qs "${newpath} " /proc/mounts; then
+    ((n++))
+    volarg="-v ${newpath}:/mnt/disk${n} "
+    echo ${volarg} | cut -d" " -f 2 >> ${config}
+    volumes="${volumes}${volarg}"
+  else
+    echo "${newpath} is not a mounted path. Try again."
+  fi
+}
+
+consent() {
+  echo "This is how your volumes will be mounted within the container:"
+  echo
+  cat ${config}
+  echo
+  echo "Does this match your intended drive mapping?"
+  read -n1 -p "[r]un container, [s]tart over, [*]quit: " -e option
+  case ${option} in
+    [rR] )
+    dowork
+    ;;
+  [sS] )
+      main
+    ;;
+  * )
+    :
+    ;;
+  esac
+}
+
+main() {
+  setvars
+  inform
+  getpaths
+  consent
+  rm ${config}
+}
+
+main "$@"
