@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+#set -x
 
 setvars() {
   n=0
@@ -42,7 +42,7 @@ inform() {
 getpaths() {
   while [[ -n "${newpath}" ]]; do
     echo
-    read -p "Mount path for volume to be merged (blank for none): " -i "${newpath}" -e newpath
+    read -p "Mount path for volume to be merged (blank for done): " -i "${newpath}" -e newpath
     checkpaths
   done
 }
