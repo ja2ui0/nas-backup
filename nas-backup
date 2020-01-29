@@ -1,5 +1,5 @@
 #!/bin/bash
-# set -x
+set -x
 
 setvars() {
   n=0
@@ -10,14 +10,27 @@ setvars() {
 }
 
 dowork() {
-  docker run \
+  ${docker} run \
   -d \
   --name nas-backup \
   --cap-add SYS_ADMIN \
   --device /dev/fuse \
-  --security-opt apparmor:unconfined \
+  ${compat} \
   ${volumes} \
   ja2ui0/mergerfs:latest
+}
+
+compat() {
+  if type -P apparmor_parser; then
+    compat="--security-opt apparmor:unconfined"
+  else
+    compat=""
+  fi
+  if type -P podman; then
+    docker=$(type -P podman)
+  else
+    docker=$(type -P docker)
+  fi
 }
 
 inform() {
@@ -71,6 +84,7 @@ consent() {
 
 main() {
   setvars
+  compat
   inform
   getpaths
   consent
